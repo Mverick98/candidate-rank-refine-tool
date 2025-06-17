@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import PDFViewer from '@/components/PDFViewer';
 import ReasoningModal from '@/components/ReasoningModal';
-import { mockAPIService } from '@/services/mockAPI';
+import { comparisonAPIService } from '@/services/comparisonAPI';
 import type { ComparisonSession, ComparisonPair, AnnotatorInfo } from '@/types/comparison';
 
 const ComparisonDashboard = () => {
@@ -35,7 +35,7 @@ const ComparisonDashboard = () => {
     
     setIsRequestingNewJD(true);
     try {
-      const response = await mockAPIService.requestJDComparison(annotator.id);
+      const response = await comparisonAPIService.requestJDComparison(annotator.id);
       
       if (!response.jd_available) {
         toast({
@@ -50,7 +50,7 @@ const ComparisonDashboard = () => {
       
       toast({
         title: "New JD Assigned",
-        description: "You can now start comparing candidates",
+        description: "Starting intelligent comparison algorithm",
       });
     } catch (error) {
       toast({
@@ -77,7 +77,7 @@ const ComparisonDashboard = () => {
       : currentComparison.resume_id_left;
 
     try {
-      const response = await mockAPIService.submitFeedback(
+      const response = await comparisonAPIService.submitFeedback(
         currentSession.session_id,
         selectedResumeId,
         unselectedResumeId,
@@ -86,23 +86,28 @@ const ComparisonDashboard = () => {
       );
       
       if (response.is_session_complete) {
+        // Get final results for logging
+        const results = comparisonAPIService.getSessionResults(currentSession.session_id);
+        console.log('Session completed with results:', results);
+        
         toast({
-          title: "Comparisons Done!",
-          description: response.message,
+          title: "Comparisons Complete!",
+          description: `Final ranking determined after ${results?.total_comparisons || 0} comparisons`,
         });
         setCurrentSession(null);
         setCurrentComparison(null);
       } else {
         setCurrentComparison(response.next_comparison!);
         toast({
-          title: "Feedback Submitted",
-          description: "Loading next comparison...",
+          title: "Comparison Recorded",
+          description: "Loading next optimal comparison...",
         });
       }
       
       setShowReasoningModal(false);
       setSelectedResumeId('');
     } catch (error) {
+      console.error('Feedback submission error:', error);
       toast({
         title: "Error",
         description: "Failed to submit feedback",

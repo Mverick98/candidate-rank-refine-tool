@@ -13,22 +13,34 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
   height = "500px", 
   className 
 }) => {
+  const handlePDFError = () => {
+    console.log('PDF failed to load:', pdfUrl);
+  };
+
   return (
-    <div className={cn("w-full", className)} style={{ height }}>
+    <div className={cn("w-full border rounded-lg overflow-hidden", className)} style={{ height }}>
       <iframe
         src={pdfUrl}
         width="100%"
         height="100%"
         style={{ border: 'none' }}
         title="PDF Viewer"
-        className="rounded-lg"
+        onError={handlePDFError}
+        className="bg-gray-50"
       >
-        <p>
-          Your browser does not support PDFs. 
-          <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
+        <div className="p-4 text-center">
+          <p className="text-gray-600 mb-2">
+            Your browser does not support PDFs.
+          </p>
+          <a 
+            href={pdfUrl} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
             Download the PDF
           </a>
-        </p>
+        </div>
       </iframe>
     </div>
   );
