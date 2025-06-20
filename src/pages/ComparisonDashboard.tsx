@@ -113,7 +113,7 @@ const ComparisonDashboard = () => {
       }
       
       if (response?.is_session_complete) {
-        const results = comparisonAPIService.getSessionResults(currentSession.session_id);
+        const results = await comparisonAPIService.getSessionResults(currentSession.session_id);
         console.log('Session completed with results:', results);
         
         toast({
@@ -159,7 +159,7 @@ const ComparisonDashboard = () => {
       );
       
       if (response.is_session_complete) {
-        const results = comparisonAPIService.getSessionResults(currentSession.session_id);
+        const results = await comparisonAPIService.getSessionResults(currentSession.session_id);
         console.log('Session completed with results:', results);
         
         toast({
