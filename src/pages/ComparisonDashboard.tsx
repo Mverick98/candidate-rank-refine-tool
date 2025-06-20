@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import PDFViewer from '@/components/PDFViewer';
 import ReasoningModal from '@/components/ReasoningModal';
+import BadReasoningModal from '@/components/BadReasoningModal';
 import { comparisonAPIService } from '@/services/comparisonAPI';
 import type { ComparisonSession, ComparisonPair, AnnotatorInfo } from '@/types/comparison';
 
@@ -15,7 +15,9 @@ const ComparisonDashboard = () => {
   const [currentComparison, setCurrentComparison] = useState<ComparisonPair | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showReasoningModal, setShowReasoningModal] = useState(false);
+  const [showBadReasoningModal, setShowBadReasoningModal] = useState(false);
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
+  const [selectionType, setSelectionType] = useState<'select' | 'equal' | 'bad'>('select');
   const [isRequestingNewJD, setIsRequestingNewJD] = useState(false);
   
   const { toast } = useToast();
@@ -65,28 +67,98 @@ const ComparisonDashboard = () => {
 
   const handleCandidateSelection = (resumeId: string) => {
     setSelectedResumeId(resumeId);
+    setSelectionType('select');
     setShowReasoningModal(true);
   };
 
+  const handleBothEqual = () => {
+    setSelectionType('equal');
+    setSelectedResumeId('equal');
+    setShowReasoningModal(true);
+  };
+
+  const handleBothBad = () => {
+    setSelectionType('bad');
+    setShowBadReasoningModal(true);
+  };
+
   const handleFeedbackSubmit = async (reasons: string[], otherText?: string) => {
-    if (!currentSession || !currentComparison || !selectedResumeId) return;
+    if (!currentSession || !currentComparison) return;
     
     setIsLoading(true);
-    const unselectedResumeId = selectedResumeId === currentComparison.resume_id_left 
-      ? currentComparison.resume_id_right 
-      : currentComparison.resume_id_left;
-
+    
     try {
-      const response = await comparisonAPIService.submitFeedback(
+      let response;
+      
+      if (selectionType === 'equal') {
+        response = await comparisonAPIService.submitEqualFeedback(
+          currentSession.session_id,
+          currentComparison.resume_id_left,
+          currentComparison.resume_id_right,
+          reasons,
+          otherText
+        );
+      } else if (selectionType === 'select') {
+        const unselectedResumeId = selectedResumeId === currentComparison.resume_id_left 
+          ? currentComparison.resume_id_right 
+          : currentComparison.resume_id_left;
+
+        response = await comparisonAPIService.submitFeedback(
+          currentSession.session_id,
+          selectedResumeId,
+          unselectedResumeId,
+          reasons,
+          otherText
+        );
+      }
+      
+      if (response?.is_session_complete) {
+        const results = comparisonAPIService.getSessionResults(currentSession.session_id);
+        console.log('Session completed with results:', results);
+        
+        toast({
+          title: "Comparisons Complete!",
+          description: `Final ranking determined after ${results?.total_comparisons || 0} comparisons`,
+        });
+        setCurrentSession(null);
+        setCurrentComparison(null);
+      } else if (response?.next_comparison) {
+        setCurrentComparison(response.next_comparison);
+        toast({
+          title: "Comparison Recorded",
+          description: "Loading next optimal comparison...",
+        });
+      }
+      
+      setShowReasoningModal(false);
+      setSelectedResumeId('');
+    } catch (error) {
+      console.error('Feedback submission error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit feedback",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBadFeedbackSubmit = async (reasons: string[], otherText?: string) => {
+    if (!currentSession || !currentComparison) return;
+    
+    setIsLoading(true);
+    
+    try {
+      const response = await comparisonAPIService.submitBadFeedback(
         currentSession.session_id,
-        selectedResumeId,
-        unselectedResumeId,
+        currentComparison.resume_id_left,
+        currentComparison.resume_id_right,
         reasons,
         otherText
       );
       
       if (response.is_session_complete) {
-        // Get final results for logging
         const results = comparisonAPIService.getSessionResults(currentSession.session_id);
         console.log('Session completed with results:', results);
         
@@ -104,10 +176,9 @@ const ComparisonDashboard = () => {
         });
       }
       
-      setShowReasoningModal(false);
-      setSelectedResumeId('');
+      setShowBadReasoningModal(false);
     } catch (error) {
-      console.error('Feedback submission error:', error);
+      console.error('Bad feedback submission error:', error);
       toast({
         title: "Error",
         description: "Failed to submit feedback",
@@ -183,7 +254,7 @@ const ComparisonDashboard = () => {
 
             {/* Candidate Comparison */}
             {currentComparison && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-6">
                 {/* Left Candidate */}
                 <Card>
                   <CardHeader>
@@ -229,17 +300,45 @@ const ComparisonDashboard = () => {
                     />
                   </CardContent>
                 </Card>
+                
+                {/* Additional Action Buttons */}
+                <div className="flex justify-center gap-4 pt-4">
+                  <Button
+                    onClick={handleBothEqual}
+                    disabled={isLoading}
+                    variant="outline"
+                    className="bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                  >
+                    Both Resumes Are Equal
+                  </Button>
+                  <Button
+                    onClick={handleBothBad}
+                    disabled={isLoading}
+                    variant="outline"
+                    className="bg-red-50 border-red-300 text-red-700 hover:bg-red-100"
+                  >
+                    Both Resumes Are Bad
+                  </Button>
+                </div>
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Reasoning Modal */}
+      {/* Reasoning Modals */}
       <ReasoningModal
         isOpen={showReasoningModal}
         onSubmit={handleFeedbackSubmit}
         onClose={() => setShowReasoningModal(false)}
+        isLoading={isLoading}
+        selectionType={selectionType}
+      />
+      
+      <BadReasoningModal
+        isOpen={showBadReasoningModal}
+        onSubmit={handleBadFeedbackSubmit}
+        onClose={() => setShowBadReasoningModal(false)}
         isLoading={isLoading}
       />
     </div>

@@ -13,38 +13,29 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 
-interface ReasoningModalProps {
+interface BadReasoningModalProps {
   isOpen: boolean;
   onSubmit: (reasons: string[], otherText?: string) => void;
   onClose: () => void;
   isLoading: boolean;
-  selectionType?: 'select' | 'equal' | 'bad';
 }
 
-const SELECT_REASON_OPTIONS = [
-  { id: 'resume_quality', label: 'Better resume quality' },
-  { id: 'role_alignment', label: 'Higher role alignment' },
-  { id: 'skill_alignment', label: 'Higher skill alignment' },
-  { id: 'recent_experience', label: 'Recent experience more related to JD' },
-  { id: 'domain_relevance', label: 'Higher domain relevance with JD' },
+const BAD_REASON_OPTIONS = [
+  { id: 'poor_formatting', label: 'Poor resume formatting' },
+  { id: 'irrelevant_experience', label: 'Irrelevant work experience' },
+  { id: 'missing_skills', label: 'Missing required skills' },
+  { id: 'lack_of_qualifications', label: 'Lack of necessary qualifications' },
+  { id: 'incomplete_information', label: 'Incomplete or unclear information' },
+  { id: 'overqualified', label: 'Overqualified for the position' },
+  { id: 'poor_communication', label: 'Poor written communication skills' },
   { id: 'others', label: 'Others' },
 ];
 
-const EQUAL_REASON_OPTIONS = [
-  { id: 'similar_experience', label: 'Similar level of experience' },
-  { id: 'equal_qualifications', label: 'Equal qualifications for the role' },
-  { id: 'comparable_skills', label: 'Comparable skill sets' },
-  { id: 'same_domain_fit', label: 'Same level of domain fit' },
-  { id: 'difficult_to_distinguish', label: 'Difficult to distinguish between candidates' },
-  { id: 'others', label: 'Others' },
-];
-
-const ReasoningModal: React.FC<ReasoningModalProps> = ({
+const BadReasoningModal: React.FC<BadReasoningModalProps> = ({
   isOpen,
   onSubmit,
   onClose,
   isLoading,
-  selectionType = 'select',
 }) => {
   const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
   const [otherText, setOtherText] = useState('');
@@ -81,24 +72,18 @@ const ReasoningModal: React.FC<ReasoningModalProps> = ({
     (selectedReasons.includes('others') && !otherText.trim()) ||
     isLoading;
 
-  const reasonOptions = selectionType === 'equal' ? EQUAL_REASON_OPTIONS : SELECT_REASON_OPTIONS;
-  const title = selectionType === 'equal' 
-    ? "Why are both candidates equal?" 
-    : "Why did you select this candidate?";
-  const description = selectionType === 'equal'
-    ? "Please select reasons why you consider both candidates to be equally qualified."
-    : "Please select at least one reason for your choice. This feedback helps improve our ranking algorithms.";
-
   return (
     <Dialog open={isOpen} onOpenChange={() => !isLoading && onClose()}>
       <DialogContent className="sm:max-w-[500px]" onPointerDownOutside={(e) => isLoading && e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>Why are both resumes bad?</DialogTitle>
+          <DialogDescription>
+            Please select reasons why you consider both candidates to be unsuitable for this position.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
-          {reasonOptions.map((option) => (
+          {BAD_REASON_OPTIONS.map((option) => (
             <div key={option.id} className="flex items-start space-x-2">
               <Checkbox
                 id={option.id}
@@ -152,4 +137,4 @@ const ReasoningModal: React.FC<ReasoningModalProps> = ({
   );
 };
 
-export default ReasoningModal;
+export default BadReasoningModal;

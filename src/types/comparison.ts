@@ -54,11 +54,11 @@ export interface ComparisonResult {
   jd_id: string;
   resume_id_left: string;
   resume_id_right: string;
-  selected_resume_id: string;
-  unselected_resume_id: string;
+  selected_resume_id: string; // Can be 'equal', 'bad', or actual resume_id
+  unselected_resume_id: string; // Can be 'equal', 'bad', or actual resume_id
   reasons_selected: string[];
   other_reason_text?: string;
   display_order_left_right: string;
-  comparison_type: string;
+  comparison_type: string; // 'normal', 'equal', 'bad'
   comparison_index_in_session: number;
 }
